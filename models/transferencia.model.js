@@ -28,30 +28,38 @@ const getIdByName = async (name) => {
 
 }
 const createTransfer = async ({ emisor, receptor, monto }) => {
-    const { id: emisorId } = await getIdByName(emisor)
-    const { id: receptorId } = await getIdByName(receptor)
-
-    const registerTransfer = {
-        text: "INSERT INTO transferencias (emisor, receptor, monto, fecha) VALUES ($1, $2, $3, NOW()) RETURNING *",
-        values: [emisorId, receptorId, monto]
-    };
-
-    const updateBalanceEmisor = {
-        text: "UPDATE usuarios SET balance = balance - $1 WHERE nombre = $2 RETURNING *",
-        values: [monto, emisor]
-    };
-    const updateBalanceReceptor = {
-        text: "UPDATE usuarios SET balance = balance + $1 WHERE nombre = $2 RETURNING *",
-        values: [monto, receptor]
-    };
 
     try {
+        const { id: emisorId } = await getIdByName(emisor)
+        const { id: receptorId } = await getIdByName(receptor)
+
         await pool.query("BEGIN")
-        await pool.query(registerTransfer)
-        await pool.query(updateBalanceEmisor)
-        await pool.query(updateBalanceReceptor)
+
+        const queryEmisor = {
+            text: "UPDATE usuarios SET balance = balance - $1 WHERE nombre = $2",
+            values: [monto, emisor]
+        }
+
+        await pool.query(queryEmisor)
+
+        const queryReceptor = {
+            text: "UPDATE usuarios SET balance = balance + $1 WHERE nombre = $2",
+            values: [monto, receptor]
+        }
+
+        await pool.query(queryReceptor)
+
+        const queryTransfer = {
+            text: "INSERT INTO transferencias (emisor, receptor, monto, fecha) VALUES ($1, $2, $3, NOW()) RETURNING *",
+            values: [emisorId, receptorId, monto]
+        };
+
+        const { rows } = await pool.query(queryTransfer)
+
         await pool.query("COMMIT")
-        return true
+
+        return rows[0]
+
     } catch (error) {
         console.error(error)
         await pool.query("ROLLBACK")
