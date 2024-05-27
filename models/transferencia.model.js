@@ -1,17 +1,20 @@
 import { pool } from "../database/connection.js"
 
 const findAll = async () => {
-    const { rows } = await pool.query(`SELECT 
-    e.nombre AS emisor,
-    r.nombre AS receptor,
-    t.monto,
-    t.fecha
-FROM 
+    const query = {
+        text: `SELECT
+        e.nombre AS emisor,
+        r.nombre AS receptor,
+        t.monto,
+        t.fecha
+    FROM 
     transferencias t
-JOIN 
+    JOIN 
     usuarios e ON t.emisor = e.id
-JOIN 
-    usuarios r ON t.receptor = r.id;`)
+    JOIN 
+    usuarios r ON t.receptor = r.id;`
+    }
+    const { rows } = await pool.query(query)
     return rows
 }
 
@@ -50,8 +53,12 @@ const createTransfer = async ({ emisor, receptor, monto }) => {
         await pool.query("COMMIT")
         return true
     } catch (error) {
+        console.error(error)
         await pool.query("ROLLBACK")
-        return error
+        return {
+            ok: false,
+            data: "Error en la transferencia"
+        }
     }
 }
 
