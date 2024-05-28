@@ -30,7 +30,7 @@ const editUsuario = async (id) => {
 $("form:first").submit(async (e) => {
     e.preventDefault();
     let nombre = $("form:first input:eq(0)").val();
-    let balance = $("form:first input:eq(1)").val();
+    let balance = Number($("form:first input:eq(1)").val());
 
     if (!nombre || !balance) {
         alert("Ingrese la información del nombre y el balance");
